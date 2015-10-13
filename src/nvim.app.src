@@ -1,0 +1,15 @@
+{application, nvim,
+ [
+  {description, "An Erlang binding to NeoVim MessagePack API"},
+  {vsn, "1"},
+  {modules, [
+             nvim
+            ]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  msgpack_rpc
+                 ]},
+  {env, []}
+ ]}.
