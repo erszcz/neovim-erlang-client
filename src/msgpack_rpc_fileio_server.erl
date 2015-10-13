@@ -11,7 +11,9 @@
 -record(state, {iodev, buffer, module}).
 
 start_link(IoDev, Module, Opts) ->
+    nvim_logger:print("~s:~p~n", [?MODULE, ?LINE]),
     Pid = spawn_link(?MODULE, init, [IoDev, Module, Opts]),
+    nvim_logger:print("~s:~p~n", [?MODULE, ?LINE]),
     {ok, Pid}.
 
 init(IoDev, Module, _Opts) ->
@@ -39,11 +41,14 @@ parse_request(#state{} = S) ->
         {[?MP_TYPE_REQUEST, CallID, M, Argv] = R, Remain} ->
             nvim_logger:print("request ~p~n", [R]),
             spawn_request_handler(S#state.iodev, CallID, Module, M, Argv),
-            parse_request(S#state{buffer = Remain});
+            loop(S#state{buffer = Remain});
         {[?MP_TYPE_NOTIFY, M, Argv] = N, Remain} ->
             nvim_logger:print("notify ~p~n", [N]),
             spawn_notify_handler(Module, M, Argv),
-            parse_request(S#state{buffer = Remain});
+            loop(S#state{buffer = Remain});
+        {{Term}, Remain} ->
+            nvim_logger:print("termz ~p~n", [Term]),
+            loop(S#state{buffer = Remain});
         {error, incomplete} ->
             loop(S);
         {error, Reason} ->
