@@ -36,10 +36,12 @@ cat(B1, B2) ->
 parse_request(#state{} = S) ->
     #state{buffer = Buffer, module = Module} = S,
     case msgpack:unpack_stream(Buffer) of
-        {[?MP_TYPE_REQUEST, CallID, M, Argv], Remain} ->
+        {[?MP_TYPE_REQUEST, CallID, M, Argv] = R, Remain} ->
+            nvim_logger:print("request ~p~n", [R]),
             spawn_request_handler(S#state.iodev, CallID, Module, M, Argv),
             parse_request(S#state{buffer = Remain});
-        {[?MP_TYPE_NOTIFY, M, Argv], Remain} ->
+        {[?MP_TYPE_NOTIFY, M, Argv] = N, Remain} ->
+            nvim_logger:print("notify ~p~n", [N]),
             spawn_notify_handler(Module, M, Argv),
             parse_request(S#state{buffer = Remain});
         {error, incomplete} ->

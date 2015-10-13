@@ -10,13 +10,14 @@ main(_Args) ->
     code:add_paths( deps_dirs(escript:script_name()) ),
     {ok, Pid} = msgpack_rpc_fileio_server:start_link(standard_io, undef, []),
     MRef = erlang:monitor(process, Pid),
+    print("alive~n"),
     receive
         {'DOWN', MRef, process, _Object, Info} ->
             print("io server down: ~p~n", [Info])
     end.
 
-%print(Text) ->
-%    print(Text, []).
+print(Text) ->
+    print(Text, []).
 
 print(Fmt, Args) ->
     %io:format(Fmt, Args).
