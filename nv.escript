@@ -36,7 +36,10 @@ enable_dbg() ->
     {ok, F} = file:open(TraceFile, write),
     dbg:tracer(process, {fun dbg:dhandler/2, F}),
     dbg:p(all, call),
-    Modules = [?MODULE,
-               msgpack_rpc_fileio_server,
-               nvim_logger],
-    [ dbg:tpl(M, x) || M <- Modules ].
+    [ dbg:tpl(M, x)
+      || M <- [?MODULE | list_modules(ebin_dir(escript:script_name()))] ].
+
+list_modules(Dir) ->
+    Wildcard = filename:join([Dir, "*.beam"]),
+    Files = filelib:wildcard(Wildcard),
+    [ list_to_atom(filename:basename(F, ".beam")) || F <- Files ].
