@@ -65,16 +65,16 @@ spawn_request_handler(IoDev, CallID, Module, M, Argv) ->
                 Prefix = [?MP_TYPE_RESPONSE, CallID],
                 try
                     Result = erlang:apply(Module,Method,Argv),
-                    reply(IoDev, {reply, msgpack:pack(Prefix ++ [nil, Result])})
+                    case msgpack:pack(Prefix ++ [nil, Result]) of
+                        {error, R} ->
+                            error(R);
+                        Reply when is_binary(Reply) ->
+                            reply(IoDev, {reply, Reply})
+                    end
                 catch
-                    error:Reason ->
-                        print("no such method: ~p / ~p~n", [Method, Reason]),
-                        ReplyBin = msgpack:pack(Prefix ++ [error2binary(Reason), nil]),
-                        reply(IoDev, {reply, ReplyBin});
-                    Class:Throw ->
-                        Error = lists:flatten(io_lib:format("~p:~p", [Class, Throw])),
-                        print("(~p)~s~n", [self(), Error]),
-                        case msgpack:pack(Prefix ++ [Error, nil]) of
+                    Error:Reason ->
+                        print("~p:~p ~p:~p~n", [?MODULE, ?LINE, Error, Reason]),
+                        case msgpack:pack(Prefix ++ [error2binary(Reason), nil]) of
                             {error, _Reason} ->
                                 reply(IoDev, {reply, ["internal error", nil]});
                             Binary when is_binary(Binary) ->
@@ -99,6 +99,7 @@ spawn_notify_handler(Module, M, Argv) ->
                   end
           end).
 
--spec error2binary(atom())->binary().
+-spec error2binary(atom()) -> binary().
 error2binary(undef) -> <<"undef">>;
-error2binary(function_clause) -> <<"function_clause">>.
+error2binary(function_clause) -> <<"function_clause">>;
+error2binary(_) -> <<"internal error">>.
