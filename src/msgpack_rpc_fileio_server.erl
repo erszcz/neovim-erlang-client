@@ -17,7 +17,7 @@ start_link(IoDev, Module, Opts) ->
     {ok, Pid}.
 
 init(IoDev, Module, _Opts) ->
-    print("~s:~p started~n", [?MODULE, ?LINE]),
+    print("~s:~p started, callback module: ~p~n", [?MODULE, ?LINE, Module]),
     loop(#state{iodev = IoDev,
                 buffer = <<>>,
                 module = Module}).
