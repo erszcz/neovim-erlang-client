@@ -7,27 +7,31 @@
 
 main(_Args) ->
     print("alive 1~n"),
-    {ok, F} = file:open("/tmp/dbg", write),
-    print("alive 2~n"),
-    %dbg:tracer(process, {fun dbg:dhandler/2, F}),
-    %dbg:p(all, call),
-    %dbg:tpl(?MODULE, x),
-    %dbg:tpl(msgpack_rpc_fileio_server, x),
-    %dbg:tpl(nvim_logger, x),
-    print("alive 3~n"),
-
     code:add_path( ebin_dir(escript:script_name()) ),
     code:add_paths( deps_dirs(escript:script_name()) ),
+
+    msgpack_rpc_fileio_server:module_info(),
+    nvim_logger:module_info(),
+
+    {ok, F} = file:open("/tmp/dbg", write),
+    print("alive 2~n"),
+    dbg:tracer(process, {fun dbg:dhandler/2, F}),
+    dbg:p(all, call),
+    dbg:tpl(?MODULE, x),
+    dbg:tpl(msgpack_rpc_fileio_server, x),
+    dbg:tpl(nvim_logger, x),
+    print("alive 3~n"),
+
     print("alive 4~n"),
     {ok, Pid} = msgpack_rpc_fileio_server:start_link(standard_io, undef, []),
-    %MRef = erlang:monitor(process, Pid),
+    MRef = erlang:monitor(process, Pid),
     print("alive 5~n"),
     receive
         {'DOWN', MRef, process, _Object, Info} ->
             print("alive 6~n"),
             print("io server down: ~p~n", [Info])
     end,
-    print("alive 6~n").
+    print("alive 7~n").
 
 print(Text) ->
     print(Text, []).
