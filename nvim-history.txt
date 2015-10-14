@@ -1,0 +1,5 @@
+77  let c = rpcstart("./nv.escript")
+79  ed /tmp/z
+80  call rpcnotify(c, "print_nvim_current_line")
+81  messages
+82  history
