@@ -65,28 +65,25 @@ spawn_request_handler(IoDev, CallID, Module, M, Argv) ->
                 Prefix = [?MP_TYPE_RESPONSE, CallID],
                 try
                     Result = erlang:apply(Module,Method,Argv),
-                    case msgpack:pack(Prefix ++ [nil, Result]) of
-                        {error, R} ->
-                            error(R);
-                        Reply when is_binary(Reply) ->
-                            reply(IoDev, {reply, Reply})
-                    end
+                    reply(IoDev, {reply, Prefix ++ [nil, Result]})
                 catch
                     Error:Reason ->
                         print("~p:~p ~p:~p~n", [?MODULE, ?LINE, Error, Reason]),
-                        case msgpack:pack(Prefix ++ [error2binary(Reason), nil]) of
-                            {error, _Reason} ->
-                                reply(IoDev, {reply, ["internal error", nil]});
-                            Binary when is_binary(Binary) ->
-                                reply(IoDev, {reply, Binary})
-                        end
+                        reply(IoDev, {reply, Prefix ++ [error2binary(Reason), nil]})
                 end,
                 erlang:demonitor(Ref)
         end,
     spawn(F).
 
-reply(IoDev, {reply, Data}) ->
-    file:write(IoDev, Data).
+reply(IoDev, {reply, Reply}) ->
+    print("reply: ~p~n", [Reply]),
+    case msgpack:pack(Reply) of
+        {error, Reason} ->
+            print("pack error: ~p~n", [Reason]),
+            error(pack_error, [Reply]);
+        B when is_binary(B) ->
+            file:write(IoDev, B)
+    end.
 
 spawn_notify_handler(Module, M, Argv) ->
     spawn(fun() ->
@@ -94,8 +91,8 @@ spawn_notify_handler(Module, M, Argv) ->
                   try
                       erlang:apply(Module, Method, Argv)
                   catch
-                      Class:Throw ->
-                          print("~p ~p:~p~n", [?LINE, Class, Throw])
+                      Error:Reason ->
+                          print("~p:~p ~p:~p~n", [?MODULE, ?LINE, Error, Reason])
                   end
           end).
 
