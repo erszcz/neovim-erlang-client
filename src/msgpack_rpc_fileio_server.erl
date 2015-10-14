@@ -18,6 +18,7 @@ start_link(IoDev, Module, Opts) ->
 
 init(IoDev, Module, _Opts) ->
     print("~s:~p started, callback module: ~p~n", [?MODULE, ?LINE, Module]),
+    {module, nvim_test} = code:load_file(Module),
     loop(#state{iodev = IoDev,
                 buffer = <<>>,
                 module = Module}).
