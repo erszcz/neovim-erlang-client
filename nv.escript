@@ -5,40 +5,21 @@
 
 -mode(compile).
 
+-define(DEBUG, true).
+
+-import(nvim_logger, [print/1, print/2]).
+
 main(_Args) ->
-    print("alive 1~n"),
     code:add_path( ebin_dir(escript:script_name()) ),
     code:add_paths( deps_dirs(escript:script_name()) ),
-
-    msgpack_rpc_fileio_server:module_info(),
-    nvim_logger:module_info(),
-
-    {ok, F} = file:open("/tmp/dbg", write),
-    print("alive 2~n"),
-    dbg:tracer(process, {fun dbg:dhandler/2, F}),
-    dbg:p(all, call),
-    dbg:tpl(?MODULE, x),
-    dbg:tpl(msgpack_rpc_fileio_server, x),
-    dbg:tpl(nvim_logger, x),
-    print("alive 3~n"),
-
-    print("alive 4~n"),
-    {ok, Pid} = msgpack_rpc_fileio_server:start_link(standard_io, undef, []),
+    ?DEBUG andalso enable_dbg(),
+    Module = nvim_test,
+    {ok, Pid} = msgpack_rpc_fileio_server:start_link(standard_io, Module, []),
     MRef = erlang:monitor(process, Pid),
-    print("alive 5~n"),
     receive
         {'DOWN', MRef, process, _Object, Info} ->
-            print("alive 6~n"),
             print("io server down: ~p~n", [Info])
-    end,
-    print("alive 7~n").
-
-print(Text) ->
-    print(Text, []).
-
-print(Fmt, Args) ->
-    %io:format(Fmt, Args).
-    file:write_file("/tmp/out", io_lib:format(Fmt, Args), [append]).
+    end.
 
 base_dir(ScriptName) ->
     filename:absname(filename:dirname(ScriptName)).
@@ -49,3 +30,13 @@ deps_dirs(ScriptName) ->
 
 ebin_dir(ScriptName) ->
     filename:join([base_dir(ScriptName), "ebin"]).
+
+enable_dbg() ->
+    TraceFile = "/tmp/dbg",
+    {ok, F} = file:open(TraceFile, write),
+    dbg:tracer(process, {fun dbg:dhandler/2, F}),
+    dbg:p(all, call),
+    Modules = [?MODULE,
+               msgpack_rpc_fileio_server,
+               nvim_logger],
+    [ dbg:tpl(M, x) || M <- Modules ].

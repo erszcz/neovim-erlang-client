@@ -8,15 +8,16 @@
 
 -include_lib("msgpack_rpc/include/msgpack_rpc.hrl").
 
+-import(nvim_logger, [print/2]).
+
 -record(state, {iodev, buffer, module}).
 
 start_link(IoDev, Module, Opts) ->
-    nvim_logger:print("~s:~p~n", [?MODULE, ?LINE]),
     Pid = spawn_link(?MODULE, init, [IoDev, Module, Opts]),
-    nvim_logger:print("~s:~p~n", [?MODULE, ?LINE]),
     {ok, Pid}.
 
 init(IoDev, Module, _Opts) ->
+    print("~s:~p started~n", [?MODULE, ?LINE]),
     loop(#state{iodev = IoDev,
                 buffer = <<>>,
                 module = Module}).
@@ -39,20 +40,20 @@ parse_request(#state{} = S) ->
     #state{buffer = Buffer, module = Module} = S,
     case msgpack:unpack_stream(Buffer) of
         {[?MP_TYPE_REQUEST, CallID, M, Argv] = R, Remain} ->
-            nvim_logger:print("request ~p~n", [R]),
+            print("request ~p~n", [R]),
             spawn_request_handler(S#state.iodev, CallID, Module, M, Argv),
             loop(S#state{buffer = Remain});
         {[?MP_TYPE_NOTIFY, M, Argv] = N, Remain} ->
-            nvim_logger:print("notify ~p~n", [N]),
+            print("notify ~p~n", [N]),
             spawn_notify_handler(Module, M, Argv),
             loop(S#state{buffer = Remain});
         {{Term}, Remain} ->
-            nvim_logger:print("termz ~p~n", [Term]),
+            print("termz ~p~n", [Term]),
             loop(S#state{buffer = Remain});
         {error, incomplete} ->
             loop(S);
         {error, Reason} ->
-            error_logger:error_msg("unpack error: ~p", [Reason]),
+            print("unpack error: ~p", [Reason]),
             error(Reason)
     end.
 
