@@ -5,7 +5,8 @@
 
 -mode(compile).
 
--define(DEBUG, true).
+%-define(DEBUG, true).
+-define(DEBUG, false).
 
 -import(nvim_logger, [print/1, print/2]).
 
